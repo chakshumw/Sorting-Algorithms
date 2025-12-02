@@ -71,5 +71,17 @@ public class CSVLoader {
         }
         return numericCols;
     }
+
+    // Turn one numeric column into double[]
+    public static double[] getColumnAsDoubleArray(List<String[]> rows, int colIndex) {
+        if (rows == null || rows.size() < 2) return new double[0];
+
+        double[] result = new double[rows.size() - 1]; // skip header
+
+        for (int i = 1; i < rows.size(); i++) {
+            result[i - 1] = Double.parseDouble(rows.get(i)[colIndex].trim());
+        }
+        return result;
+    }
     
 }
