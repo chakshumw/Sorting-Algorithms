@@ -28,5 +28,60 @@ public class CSVLoader {
 
         return rows;
     }
+
+    // Get column names from first row (header)
+    public static List<String> getColumnNames(List<String[]> rows) {
+        List<String> names = new ArrayList<>();
+        if (rows == null || rows.isEmpty()) return names;
+
+        String[] header = rows.get(0);
+        for (String col : header) {
+            names.add(col.trim());
+        }
+        return names;
+    }
+
+    // Detect which columns are fully numeric
+    public static List<Integer> getNumericColumnIndices(List<String[]> rows) {
+        List<Integer> numericCols = new ArrayList<>();
+        if (rows == null || rows.size() < 2) return numericCols;
+
+        int colCount = rows.get(0).length;
+
+        for (int col = 0; col < colCount; col++) {
+            boolean numeric = true;
+
+            for (int row = 1; row < rows.size(); row++) {
+                String value = rows.get(row)[col].trim();
+                if (value.isEmpty()) {
+                    numeric = false;
+                    break;
+                }
+                try {
+                    Double.parseDouble(value);
+                } catch (NumberFormatException e) {
+                    numeric = false;
+                    break;
+                }
+            }
+
+            if (numeric) {
+                numericCols.add(col);
+            }
+        }
+        return numericCols;
+    }
+
+    // Turn one numeric column into double[]
+    public static double[] getColumnAsDoubleArray(List<String[]> rows, int colIndex) {
+        if (rows == null || rows.size() < 2) return new double[0];
+
+        double[] result = new double[rows.size() - 1]; // skip header
+
+        for (int i = 1; i < rows.size(); i++) {
+            result[i - 1] = Double.parseDouble(rows.get(i)[colIndex].trim());
+        }
+        return result;
+    }
     
 }
