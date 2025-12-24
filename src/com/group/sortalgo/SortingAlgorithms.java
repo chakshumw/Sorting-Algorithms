@@ -2,6 +2,65 @@ package com.group.sortalgo;
 
 public class SortingAlgorithms {
 
+    // Insertion Sort
+    public static void insertionSort(double[] arr) {
+        for (int i = 1; i < arr.length; i++) {
+            double key = arr[i];
+            int j = i - 1;
+
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+
+    // Merge Sort
+    public static void mergeSort(double[] arr) {
+        mergeSort(arr, 0, arr.length - 1);
+    }
+
+    private static void mergeSort(double[] arr, int left, int right) {
+        if (left >= right) return;
+
+        int mid = (left + right) / 2;
+
+        // sort left half
+        mergeSort(arr, left, mid);
+        // sort right half
+        mergeSort(arr, mid + 1, right);
+        // merge them
+        merge(arr, left, mid, right);
+    }
+
+    private static void merge(double[] arr, int left, int mid, int right) {
+        int n1 = mid - left + 1;
+        int n2 = right - mid;
+
+        double[] L = new double[n1];
+        double[] R = new double[n2];
+
+        for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+        for (int j = 0; j < n2; j++) R[j] = arr[mid + 1 + j];
+
+        int i = 0, j = 0, k = left;
+
+        // merge two sorted arrays L and R
+        while (i < n1 && j < n2) {
+            if (L[i] <= R[j]) {
+                arr[k++] = L[i++];
+            } else {
+                arr[k++] = R[j++];
+            }
+        }
+
+        // copy remaining
+        while (i < n1) arr[k++] = L[i++];
+        while (j < n2) arr[k++] = R[j++];
+    }
+
+
     // Shell Sort
     public static void shellSort(double[] arr) {
         int n = arr.length;
@@ -55,4 +114,39 @@ public class SortingAlgorithms {
         return i + 1;
     }
 
+    // 5) Heap Sort
+    public static void heapSort(double[] arr) {
+        int n = arr.length;
+
+        // build max heap
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            heapify(arr, n, i);
+        }
+
+        // one by one extract elements
+        for (int i = n - 1; i > 0; i--) {
+            double temp = arr[0];
+            arr[0] = arr[i];
+            arr[i] = temp;
+
+            heapify(arr, i, 0);
+        }
+    }
+
+    private static void heapify(double[] arr, int n, int i) {
+        int largest = i;
+        int left  = 2 * i + 1;
+        int right = 2 * i + 2;
+
+        if (left < n && arr[left] > arr[largest]) largest = left;
+        if (right < n && arr[right] > arr[largest]) largest = right;
+
+        if (largest != i) {
+            double swap = arr[i];
+            arr[i] = arr[largest];
+            arr[largest] = swap;
+
+            heapify(arr, n, largest);
+        }
+    }
 }
