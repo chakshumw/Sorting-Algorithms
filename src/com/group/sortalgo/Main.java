@@ -17,9 +17,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import java.util.Map;
+
 public class Main extends Application {
 
-    // ===== Task 01 fields =====
     private List<String[]> rows;
     private List<Integer> numericCols;
 
@@ -27,7 +28,6 @@ public class Main extends Application {
     private Label fileLabel;
     private Button runButton;
 
-    // UI placeholders (used later in Task 02)
     private TextArea logArea;
     private Label bestAlgoNameLabel;
     private Label bestAlgoTimeLabel;
@@ -49,7 +49,6 @@ public class Main extends Application {
         root.setPadding(new Insets(16));
         root.setStyle("-fx-background-color: " + LIGHT_BG + ";");
 
-        // ===== Header =====
         HBox header = new HBox();
         header.setPadding(new Insets(12, 18, 12, 18));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -61,7 +60,6 @@ public class Main extends Application {
         logo.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 800;");
         header.getChildren().add(logo);
 
-        // ===== Main panel =====
         VBox mainPanel = new VBox(16);
         mainPanel.setPadding(new Insets(18));
         mainPanel.setBackground(new Background(new BackgroundFill(
@@ -138,6 +136,15 @@ public class Main extends Application {
         } catch (IOException e) {
             showError(e.getMessage());
         }
+    }
+    private void onRunSorting() {
+        int selectedIndex = columnSelector.getSelectionModel().getSelectedIndex();
+        int colIndex = numericCols.get(selectedIndex);
+
+        double[] data = CSVLoader.getColumnAsDoubleArray(rows, colIndex);
+
+        Map<String, Long> results = PerformanceEvaluator.runAll(data);
+
     }
 
     private void showError(String msg) {
