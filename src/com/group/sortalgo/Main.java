@@ -1,13 +1,41 @@
 package com.group.sortalgo;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
-// TEMP test Main to verify JavaFX + project wiring
 public class Main extends Application {
+
+    // ===== Task 01 fields =====
+    private List<String[]> rows;
+    private List<Integer> numericCols;
+
+    private ComboBox<String> columnSelector;
+    private Label fileLabel;
+    private Button runButton;
+
+    // UI placeholders (used later in Task 02)
+    private TextArea logArea;
+    private Label bestAlgoNameLabel;
+    private Label bestAlgoTimeLabel;
+    private BarChart<String, Number> barChart;
+
+    private static final String ACCENT_PURPLE = "#8B5CF6";
+    private static final String DARK_BG = "#050509";
+    private static final String LIGHT_BG = "#ECECF4";
 
     public static void main(String[] args) {
         launch(args);
@@ -15,9 +43,105 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        Label label = new Label("JavaFX Works!");
-        stage.setScene(new Scene(new StackPane(label), 300, 200));
-        stage.setTitle("SortLab Test");
+        stage.setTitle("SortLab – Sorting Algorithm Dashboard");
+
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(16));
+        root.setStyle("-fx-background-color: " + LIGHT_BG + ";");
+
+        // ===== Header =====
+        HBox header = new HBox();
+        header.setPadding(new Insets(12, 18, 12, 18));
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setBackground(new Background(new BackgroundFill(
+                Color.web(DARK_BG), new CornerRadii(14), Insets.EMPTY
+        )));
+
+        Label logo = new Label("SortLab");
+        logo.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 800;");
+        header.getChildren().add(logo);
+
+        // ===== Main panel =====
+        VBox mainPanel = new VBox(16);
+        mainPanel.setPadding(new Insets(18));
+        mainPanel.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(18), Insets.EMPTY
+        )));
+        mainPanel.setEffect(new DropShadow(18, Color.rgb(15, 23, 42, 0.12)));
+
+        VBox bestCard = buildBestAlgorithmCard();
+        VBox datasetCard = buildDatasetCard(stage);
+
+        HBox topRow = new HBox(16, bestCard, datasetCard);
+        mainPanel.getChildren().add(topRow);
+
+        root.getChildren().addAll(header, mainPanel);
+
+        Scene scene = new Scene(root, 960, 560);
+        stage.setScene(scene);
         stage.show();
+    }
+
+    // ===== UI builders =====
+    private VBox buildBestAlgorithmCard() {
+        bestAlgoNameLabel = new Label("N/A");
+        bestAlgoTimeLabel = new Label("Run an analysis to find the fastest method.");
+
+        VBox box = new VBox(10, bestAlgoNameLabel, bestAlgoTimeLabel);
+        box.setPadding(new Insets(20));
+        return box;
+    }
+
+    private VBox buildDatasetCard(Stage stage) {
+        Button loadButton = new Button("Load CSV");
+        loadButton.setOnAction(e -> onLoadCSV(stage));
+
+        runButton = new Button("Run sorting");
+        runButton.setDisable(true); // enabled in Task 02
+
+        columnSelector = new ComboBox<>();
+        columnSelector.setPromptText("Numeric column");
+
+        fileLabel = new Label("No file loaded");
+
+        VBox box = new VBox(10, fileLabel, loadButton, columnSelector, runButton);
+        return box;
+    }
+
+    private void onLoadCSV(Stage stage) {
+        FileChooser chooser = new FileChooser();
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+        );
+
+        File file = chooser.showOpenDialog(stage);
+        if (file == null) return;
+
+        try {
+            rows = CSVLoader.loadCSV(file.getAbsolutePath());
+
+            numericCols = CSVLoader.getNumericColumnIndices(rows);
+            columnSelector.getItems().clear();
+
+            List<String> names = CSVLoader.getColumnNames(rows);
+            for (Integer idx : numericCols) {
+                columnSelector.getItems().add(names.get(idx));
+            }
+
+            if (!columnSelector.getItems().isEmpty()) {
+                columnSelector.getSelectionModel().selectFirst();
+            }
+
+            fileLabel.setText(file.getName());
+            runButton.setDisable(false);
+
+        } catch (IOException e) {
+            showError(e.getMessage());
+        }
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
+        alert.showAndWait();
     }
 }
