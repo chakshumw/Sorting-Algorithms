@@ -7,16 +7,17 @@ import javafx.scene.Scene;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import java.util.Map;
 
 public class Main extends Application {
@@ -25,12 +26,9 @@ public class Main extends Application {
     private List<Integer> numericCols;
 
     private ComboBox<String> columnSelector;
+    private TextArea logArea;
     private Label fileLabel;
     private Button runButton;
-
-    private TextArea logArea;
-    private Label bestAlgoNameLabel;
-    private Label bestAlgoTimeLabel;
     private BarChart<String, Number> barChart;
 
     private static final String ACCENT_PURPLE = "#8B5CF6";
@@ -49,6 +47,7 @@ public class Main extends Application {
         root.setPadding(new Insets(16));
         root.setStyle("-fx-background-color: " + LIGHT_BG + ";");
 
+        // Header
         HBox header = new HBox();
         header.setPadding(new Insets(12, 18, 12, 18));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -60,6 +59,7 @@ public class Main extends Application {
         logo.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 800;");
         header.getChildren().add(logo);
 
+        // Main panel
         VBox mainPanel = new VBox(16);
         mainPanel.setPadding(new Insets(18));
         mainPanel.setBackground(new Background(new BackgroundFill(
@@ -67,11 +67,10 @@ public class Main extends Application {
         )));
         mainPanel.setEffect(new DropShadow(18, Color.rgb(15, 23, 42, 0.12)));
 
-        VBox bestCard = buildBestAlgorithmCard();
         VBox datasetCard = buildDatasetCard(stage);
+        VBox outputCard = buildOutputCard();
 
-        HBox topRow = new HBox(16, bestCard, datasetCard);
-        mainPanel.getChildren().add(topRow);
+        mainPanel.getChildren().addAll(datasetCard, outputCard);
 
         root.getChildren().addAll(header, mainPanel);
 
@@ -81,31 +80,45 @@ public class Main extends Application {
     }
 
     // ===== UI builders =====
-    private VBox buildBestAlgorithmCard() {
-        bestAlgoNameLabel = new Label("N/A");
-        bestAlgoTimeLabel = new Label("Run an analysis to find the fastest method.");
-
-        VBox box = new VBox(10, bestAlgoNameLabel, bestAlgoTimeLabel);
-        box.setPadding(new Insets(20));
-        return box;
-    }
-
     private VBox buildDatasetCard(Stage stage) {
+        Label title = new Label("Dataset & Controls");
+
         Button loadButton = new Button("Load CSV");
         loadButton.setOnAction(e -> onLoadCSV(stage));
 
         runButton = new Button("Run sorting");
-        runButton.setDisable(true); // enabled in Task 02
+        runButton.setDisable(true);
+        runButton.setOnAction(e -> onRunSorting());
 
         columnSelector = new ComboBox<>();
         columnSelector.setPromptText("Numeric column");
 
         fileLabel = new Label("No file loaded");
 
-        VBox box = new VBox(10, fileLabel, loadButton, columnSelector, runButton);
+        VBox box = new VBox(10, title, fileLabel, loadButton, columnSelector, runButton);
+        box.setPadding(new Insets(16));
         return box;
     }
 
+    private VBox buildOutputCard() {
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Time (ms)");
+
+        barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setLegendVisible(false);
+        barChart.setAnimated(false);
+
+        logArea = new TextArea();
+        logArea.setEditable(false);
+        logArea.setPrefRowCount(10);
+
+        VBox box = new VBox(10, barChart, logArea);
+        box.setPadding(new Insets(16));
+        return box;
+    }
+
+    // ===== Logic =====
     private void onLoadCSV(Stage stage) {
         FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(
@@ -113,42 +126,91 @@ public class Main extends Application {
         );
 
         File file = chooser.showOpenDialog(stage);
-        if (file == null) return;
+        if (file == null) {
+            showError("No file selected.");
+            return;
+        }
 
         try {
             rows = CSVLoader.loadCSV(file.getAbsolutePath());
 
-            numericCols = CSVLoader.getNumericColumnIndices(rows);
-            columnSelector.getItems().clear();
+            if (rows == null || rows.size() < 2) {
+                showError("CSV file must have a header and at least one data row.");
+                runButton.setDisable(true);
+                return;
+            }
 
+            numericCols = CSVLoader.getNumericColumnIndices(rows);
+            if (numericCols.isEmpty()) {
+                showError("No numeric columns found in this CSV.");
+                runButton.setDisable(true);
+                return;
+            }
+
+            columnSelector.getItems().clear();
             List<String> names = CSVLoader.getColumnNames(rows);
             for (Integer idx : numericCols) {
                 columnSelector.getItems().add(names.get(idx));
             }
 
-            if (!columnSelector.getItems().isEmpty()) {
-                columnSelector.getSelectionModel().selectFirst();
-            }
-
+            columnSelector.getSelectionModel().selectFirst();
             fileLabel.setText(file.getName());
             runButton.setDisable(false);
 
         } catch (IOException e) {
-            showError(e.getMessage());
+            showError("File cannot be read:\n" + e.getMessage());
         }
     }
+
     private void onRunSorting() {
+        if (rows == null || numericCols == null || numericCols.isEmpty()) {
+            showError("Please load a valid CSV file first.");
+            return;
+        }
+
         int selectedIndex = columnSelector.getSelectionModel().getSelectedIndex();
+        if (selectedIndex < 0) {
+            showError("Please select a numeric column.");
+            return;
+        }
+
         int colIndex = numericCols.get(selectedIndex);
 
         double[] data = CSVLoader.getColumnAsDoubleArray(rows, colIndex);
+        if (data.length == 0) {
+            showError("Selected column has no data.");
+            return;
+        }
 
-        Map<String, Long> results = PerformanceEvaluator.runAll(data);
+        Map<String, Long> times = PerformanceEvaluator.runAll(data);
 
+        // Log output
+        StringBuilder sb = new StringBuilder("Execution times (ns):\n\n");
+        for (Map.Entry<String, Long> entry : times.entrySet()) {
+            sb.append(entry.getKey())
+                    .append(" : ")
+                    .append(entry.getValue())
+                    .append(" ns\n");
+        }
+        logArea.setText(sb.toString());
+
+        // Chart output
+        barChart.getData().clear();
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+
+        for (Map.Entry<String, Long> entry : times.entrySet()) {
+            series.getData().add(
+                    new XYChart.Data<>(entry.getKey(),
+                            entry.getValue() / 1_000_000.0)
+            );
+        }
+
+        barChart.getData().add(series);
     }
 
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
+        alert.setHeaderText(null);
         alert.showAndWait();
     }
 }
