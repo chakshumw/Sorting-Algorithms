@@ -62,10 +62,6 @@ public class PerformanceEvaluator {
             }
         }
 
-        if (bestName == null) {
-            return "N/A";
-        }
-
-        return bestName + " (" + bestTime + " ns)";
+        return bestName;
     }
 }
