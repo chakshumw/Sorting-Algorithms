@@ -49,4 +49,23 @@ public class PerformanceEvaluator {
 
         return times;
     }
+
+    // Find which algorithm is the fastest
+    public static String bestAlgorithm(Map<String, Long> times) {
+        String bestName = null;
+        long bestTime = Long.MAX_VALUE;
+
+        for (Map.Entry<String, Long> entry : times.entrySet()) {
+            if (entry.getValue() < bestTime) {
+                bestTime = entry.getValue();
+                bestName = entry.getKey();
+            }
+        }
+
+        if (bestName == null) {
+            return "N/A";
+        }
+
+        return bestName + " (" + bestTime + " ns)";
+    }
 }
