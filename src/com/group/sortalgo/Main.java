@@ -28,13 +28,11 @@ public class Main extends Application {
 
     private ComboBox<String> columnSelector;
     private TextArea logArea;
+    private Label bestAlgoNameLabel;
+    private Label bestAlgoTimeLabel;
     private Label fileLabel;
     private Button runButton;
     private BarChart<String, Number> barChart;
-
-    // Best algorithm UI
-    private Label bestAlgoNameLabel;
-    private Label bestAlgoTimeLabel;
 
     private static final String ACCENT_PURPLE = "#8B5CF6";
     private static final String DARK_BG = "#050509";
@@ -48,12 +46,13 @@ public class Main extends Application {
     public void start(Stage stage) {
         stage.setTitle("SortLab – Sorting Algorithm Dashboard");
 
+        // Root background
         VBox root = new VBox(12);
         root.setPadding(new Insets(16));
         root.setStyle("-fx-background-color: " + LIGHT_BG + ";");
 
         // Header
-        HBox header = new HBox();
+        HBox header = new HBox(16);
         header.setPadding(new Insets(12, 18, 12, 18));
         header.setAlignment(Pos.CENTER_LEFT);
         header.setBackground(new Background(new BackgroundFill(
@@ -61,8 +60,26 @@ public class Main extends Application {
         )));
 
         Label logo = new Label("SortLab");
-        logo.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 800;");
-        header.getChildren().add(logo);
+        logo.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 16px;" +
+                        "-fx-font-weight: 800;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label pill = new Label(" Sorting Dashboard ");
+        pill.setStyle(
+                "-fx-background-color: " + ACCENT_PURPLE + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-font-weight: 600;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 14;"
+        );
+
+        header.getChildren().addAll(logo, spacer, pill);
 
         // Main panel
         VBox mainPanel = new VBox(16);
@@ -72,41 +89,106 @@ public class Main extends Application {
         )));
         mainPanel.setEffect(new DropShadow(18, Color.rgb(15, 23, 42, 0.12)));
 
+        VBox bestCard = buildBestAlgorithmCard();
         VBox datasetCard = buildDatasetCard(stage);
-        VBox outputCard = buildOutputCard();
 
-        mainPanel.getChildren().addAll(datasetCard, outputCard);
+        HBox topRow = new HBox(16, bestCard, datasetCard);
+        HBox.setHgrow(bestCard, Priority.ALWAYS);
 
-        root.getChildren().addAll(header, mainPanel);
+        HBox bottomRow = buildBottomRow();
 
-        Scene scene = new Scene(root, 960, 560);
-        stage.setScene(scene);
+        mainPanel.getChildren().addAll(topRow, bottomRow);
+
+        // Footer
+        Label footer = new Label("2021T01251 • 2021T01254 • 2021T01241");
+        footer.setStyle(
+                "-fx-text-fill: #6B7280;" +
+                        "-fx-font-size: 11px;"
+        );
+
+        VBox footerBox = new VBox(footer);
+        footerBox.setAlignment(Pos.CENTER);
+
+        root.getChildren().addAll(header, mainPanel, footerBox);
+
+        stage.setScene(new Scene(root, 960, 560));
         stage.show();
     }
 
-    // ===== UI builders =====
+    // UI BUILDERS
+
+    private VBox buildBestAlgorithmCard() {
+        Label title = new Label("Best algorithm");
+        title.setStyle(
+                "-fx-text-fill: #6B7280;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-font-weight: 600;"
+        );
+
+        bestAlgoNameLabel = new Label("N/A");
+        bestAlgoNameLabel.setStyle(
+                "-fx-font-size: 30px;" +
+                        "-fx-font-weight: 800;" +
+                        "-fx-text-fill: #111827;" +
+                        "-fx-padding: 10 0;"
+        );
+
+        bestAlgoTimeLabel = new Label("Run an analysis to find the fastest method.");
+        bestAlgoTimeLabel.setStyle(
+                "-fx-text-fill: #6B7280;" +
+                        "-fx-font-size: 11px;"
+        );
+
+        VBox card = new VBox(10, title, bestAlgoNameLabel, bestAlgoTimeLabel);
+        card.setPadding(new Insets(20));
+        styleCard(card);
+
+        return card;
+    }
 
     private VBox buildDatasetCard(Stage stage) {
-        Label title = new Label("Dataset & Controls");
+        Label title = new Label("Dataset & controls");
+        title.setStyle(
+                "-fx-text-fill: #6B7280;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-font-weight: 600;"
+        );
 
         Button loadButton = new Button("Load CSV");
-        loadButton.setOnAction(e -> onLoadCSV(stage));
+        stylePrimaryButton(loadButton);
 
         runButton = new Button("Run sorting");
+        styleDarkButton(runButton);
         runButton.setDisable(true);
-        runButton.setOnAction(e -> onRunSorting());
 
         columnSelector = new ComboBox<>();
         columnSelector.setPromptText("Numeric column");
+        columnSelector.setPrefWidth(220);
+        columnSelector.setStyle(
+                "-fx-background-radius: 999;" +
+                        "-fx-border-radius: 999;" +
+                        "-fx-border-color: #E5E7EB;" +
+                        "-fx-padding: 4 10;" +
+                        "-fx-font-size: 11px;"
+        );
+
+        HBox controls = new HBox(8, loadButton, columnSelector, runButton);
+        controls.setAlignment(Pos.CENTER_RIGHT);
 
         fileLabel = new Label("No file loaded");
+        fileLabel.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 11px;");
 
-        VBox box = new VBox(10, title, fileLabel, loadButton, columnSelector, runButton);
-        box.setPadding(new Insets(16));
-        return box;
+        VBox card = new VBox(10, title, fileLabel, controls);
+        card.setPadding(new Insets(16));
+        styleCard(card);
+
+        loadButton.setOnAction(e -> onLoadCSV(stage));
+        runButton.setOnAction(e -> onRunSorting());
+
+        return card;
     }
 
-    private VBox buildOutputCard() {
+    private HBox buildBottomRow() {
         CategoryAxis xAxis = new CategoryAxis();
         NumberAxis yAxis = new NumberAxis();
         yAxis.setLabel("Time (ms)");
@@ -114,42 +196,95 @@ public class Main extends Application {
         barChart = new BarChart<>(xAxis, yAxis);
         barChart.setLegendVisible(false);
         barChart.setAnimated(false);
+        barChart.setCategoryGap(18);
+        barChart.setBarGap(6);
+        barChart.setStyle("-fx-background-color: transparent;");
 
-        bestAlgoNameLabel = new Label("N/A");
-        bestAlgoTimeLabel = new Label("No result.");
-
-        VBox bestBox = new VBox(4,
-                new Label("Best Algorithm"),
-                bestAlgoNameLabel,
-                bestAlgoTimeLabel
-        );
+        VBox chartCard = new VBox(8, new Label("Performance"), barChart);
+        chartCard.setPadding(new Insets(14));
+        styleCard(chartCard);
 
         logArea = new TextArea();
         logArea.setEditable(false);
-        logArea.setPrefRowCount(8);
+        logArea.setPrefRowCount(9);
+        logArea.setStyle(
+                "-fx-font-family: 'JetBrains Mono', 'Consolas', monospace;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-text-fill: #111827;" +
+                        "-fx-control-inner-background: #F9FAFB;" +
+                        "-fx-background-radius: 10;" +
+                        "-fx-border-radius: 10;" +
+                        "-fx-border-color: #E5E7EB;" +
+                        "-fx-border-width: 1;"
+        );
 
-        VBox box = new VBox(10, bestBox, barChart, logArea);
-        box.setPadding(new Insets(16));
-        return box;
+        Platform.runLater(() -> {
+            logArea.lookup(".content").setStyle("-fx-padding: 15;");
+        });
+
+        Label logTitle = new Label("Execution log");
+        logTitle.setStyle(
+                "-fx-text-fill: #374151;" +
+                        "-fx-font-size: 12px;" +
+                        "-fx-font-weight: 700;"
+        );
+
+        VBox logCard = new VBox(10, logTitle, logArea);
+        logCard.setPadding(new Insets(14));
+        styleCard(logCard);
+
+        HBox row = new HBox(14, chartCard, logCard);
+        HBox.setHgrow(chartCard, Priority.ALWAYS);
+        HBox.setHgrow(logCard, Priority.ALWAYS);
+
+        return row;
     }
 
-    // ===== Logic =====
+    // STYLING HELPERS
+
+    private void stylePrimaryButton(Button b) {
+        b.setStyle(
+                "-fx-background-color: " + ACCENT_PURPLE + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: 600;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+    }
+
+    private void styleDarkButton(Button b) {
+        b.setStyle(
+                "-fx-background-color: #111827;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: 600;" +
+                        "-fx-font-size: 11px;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+    }
+
+    private void styleCard(Region card) {
+        card.setBackground(new Background(new BackgroundFill(
+                Color.web("#F8F8FC"), new CornerRadii(12), Insets.EMPTY
+        )));
+        card.setBorder(new Border(new BorderStroke(
+                Color.web("#E5E7EB"),
+                BorderStrokeStyle.SOLID,
+                new CornerRadii(12),
+                new BorderWidths(1)
+        )));
+    }
+
 
     private void onLoadCSV(Stage stage) {
         FileChooser chooser = new FileChooser();
-        chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("CSV Files", "*.csv")
-        );
-
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File file = chooser.showOpenDialog(stage);
-        if (file == null) {
-            showError("No file selected.");
-            return;
-        }
+        if (file == null) return;
 
         try {
             rows = CSVLoader.loadCSV(file.getAbsolutePath());
-
             if (rows == null || rows.size() < 2) {
                 showError("CSV file must have a header and at least one data row.");
                 runButton.setDisable(true);
@@ -174,7 +309,7 @@ public class Main extends Application {
             runButton.setDisable(false);
 
         } catch (IOException e) {
-            showError("File cannot be read:\n" + e.getMessage());
+            showError(e.getMessage());
         }
     }
 
@@ -200,7 +335,6 @@ public class Main extends Application {
 
         Map<String, Long> times = PerformanceEvaluator.runAll(data);
 
-        // ===== Best algorithm (Task #15) =====
         String bestName = PerformanceEvaluator.bestAlgorithm(times);
         Long bestTime = bestName != null ? times.get(bestName) : null;
 
@@ -212,7 +346,7 @@ public class Main extends Application {
             bestAlgoTimeLabel.setText("No result.");
         }
 
-        // Log output
+        // Log
         StringBuilder sb = new StringBuilder("Execution times (ns):\n\n");
         for (Map.Entry<String, Long> entry : times.entrySet()) {
             sb.append(entry.getKey())
@@ -222,14 +356,13 @@ public class Main extends Application {
         }
         logArea.setText(sb.toString());
 
-        // Chart output
+        // Chart
         barChart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
 
         for (Map.Entry<String, Long> entry : times.entrySet()) {
             series.getData().add(
-                    new XYChart.Data<>(entry.getKey(),
-                            entry.getValue() / 1_000_000.0)
+                    new XYChart.Data<>(entry.getKey(), entry.getValue() / 1_000_000.0)
             );
         }
 
