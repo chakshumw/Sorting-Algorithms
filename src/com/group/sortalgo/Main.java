@@ -1,6 +1,7 @@
 package com.group.sortalgo;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -30,6 +31,10 @@ public class Main extends Application {
     private Label fileLabel;
     private Button runButton;
     private BarChart<String, Number> barChart;
+
+    // Best algorithm UI
+    private Label bestAlgoNameLabel;
+    private Label bestAlgoTimeLabel;
 
     private static final String ACCENT_PURPLE = "#8B5CF6";
     private static final String DARK_BG = "#050509";
@@ -80,6 +85,7 @@ public class Main extends Application {
     }
 
     // ===== UI builders =====
+
     private VBox buildDatasetCard(Stage stage) {
         Label title = new Label("Dataset & Controls");
 
@@ -109,16 +115,26 @@ public class Main extends Application {
         barChart.setLegendVisible(false);
         barChart.setAnimated(false);
 
+        bestAlgoNameLabel = new Label("N/A");
+        bestAlgoTimeLabel = new Label("No result.");
+
+        VBox bestBox = new VBox(4,
+                new Label("Best Algorithm"),
+                bestAlgoNameLabel,
+                bestAlgoTimeLabel
+        );
+
         logArea = new TextArea();
         logArea.setEditable(false);
-        logArea.setPrefRowCount(10);
+        logArea.setPrefRowCount(8);
 
-        VBox box = new VBox(10, barChart, logArea);
+        VBox box = new VBox(10, bestBox, barChart, logArea);
         box.setPadding(new Insets(16));
         return box;
     }
 
     // ===== Logic =====
+
     private void onLoadCSV(Stage stage) {
         FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(
@@ -184,6 +200,18 @@ public class Main extends Application {
 
         Map<String, Long> times = PerformanceEvaluator.runAll(data);
 
+        // ===== Best algorithm (Task #15) =====
+        String bestName = PerformanceEvaluator.bestAlgorithm(times);
+        Long bestTime = bestName != null ? times.get(bestName) : null;
+
+        if (bestName != null && bestTime != null) {
+            bestAlgoNameLabel.setText(bestName);
+            bestAlgoTimeLabel.setText("Fastest: " + bestTime + " ns total");
+        } else {
+            bestAlgoNameLabel.setText("N/A");
+            bestAlgoTimeLabel.setText("No result.");
+        }
+
         // Log output
         StringBuilder sb = new StringBuilder("Execution times (ns):\n\n");
         for (Map.Entry<String, Long> entry : times.entrySet()) {
@@ -206,6 +234,19 @@ public class Main extends Application {
         }
 
         barChart.getData().add(series);
+
+        // Highlight best bar
+        Platform.runLater(() -> {
+            for (XYChart.Data<String, Number> point : series.getData()) {
+                if (point.getNode() == null) continue;
+
+                if (point.getXValue().equals(bestName)) {
+                    point.getNode().setStyle("-fx-bar-fill: " + ACCENT_PURPLE + ";");
+                } else {
+                    point.getNode().setStyle("-fx-bar-fill: #D1D5DB;");
+                }
+            }
+        });
     }
 
     private void showError(String msg) {
